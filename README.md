@@ -29,11 +29,22 @@ chmod +x scripts/*.sh
 
 # 4. Edit the 5 files listed in the checklist printed above
 
-# 5. Start
+# 5. Fix directory ownership before first start
+docker compose down
+
+chown -R 1000:1000 thehive/data thehive/logs thehive/config
+chown -R 1000:1000 cortex/logs cortex/neurons cortex/cortex-jobs
+chown -R 999:999   cassandra/data cassandra/logs
+chown -R 1000:1000 elasticsearch/data elasticsearch/logs
+
+chmod -R 755 cassandra/data cassandra/logs
+chmod -R 755 elasticsearch/data elasticsearch/logs
+
+# 6. Start
 docker compose pull
 docker compose up -d
 
-# 6. Check
+# 7. Check
 docker compose ps
 ./scripts/healthcheck.sh
 ```
@@ -81,12 +92,20 @@ It then prints a checklist of every placeholder you must replace.
 UID=1000
 GID=1000
 ELASTICSEARCH_PASSWORD=admin!123
-CORTEX_DOCKER_JOB_DIRECTORY=./cortex/cortex-jobs
+CORTEX_DOCKER_JOB_DIRECTORY=/home/thehive/hive/thehive5-cortex-docker/cortex/cortex-jobs
 NGINX_SERVER_NAME=localhost
 NGINX_SSL_TRUSTED_CERTIFICATE=/etc/nginx/certs/thehive-ca.crt
 THEHIVE_SECRET=xK92mZpL3QnRvTwYsAjDgFbHcUoEiNtXyWkO1VhMl
 CORTEX_SECRET=aB7nWqRpKsLmXoVtGcYeJfHiUdMzNwTyPbCgFkDsEl
+cassandra_image_version=4.1.10
+elasticsearch_image_version=8.19.11
+thehive_image_version=5.6.0
+cortex_image_version=4.0.0
+nginx_image_version=1.29.5
 ```
+
+> ⚠️ Version variables (`cassandra_image_version`, etc.) must be in `.env`.
+> Run `cat versions.env >> .env` if they are missing.
 
 #### `thehive/config/index.conf`
 ```hocon
@@ -120,12 +139,46 @@ play.http.secret.key="xK92mZpL3QnRvTwYsAjDgFbHcUoEiNtXyWkO1VhMl"  # ← NOT the 
 
 #### `cortex/config/secret.conf`
 ```hocon
-play.http.secret.key="aB7nWqRpKsLmXoVtGcYeJfHiUdMzNwTyPbCgFkDsEl"  # ← NOT the ES password, different from TheHive
+play.http.secret.key="aB7nWqRpKsLmXoVtGcYeJfHiUdMzNwTyPbCgFkDsEl"  # ← different from TheHive
 ```
 
-> ⚠️ The Elasticsearch password must be **identical** across `.env`, `thehive/config/index.conf`, and `cortex/config/index.conf`. If they differ, the containers will restart-loop with auth errors.
+> ⚠️ The Elasticsearch password must be **identical** across `.env`, `thehive/config/index.conf`, and `cortex/config/index.conf`.
 
-> ⚠️ The `secret.key` values in `secret.conf` are **NOT** the ES password. They are Play framework session encryption keys and must each be a long unique random string.
+---
+
+## Directory ownership (REQUIRED before first start)
+
+Each container runs as a specific internal UID. Mounted host directories **must** be owned by that UID before startup or the JVM will fail to write logs and crash.
+
+| Container | Internal UID | Directories |
+|---|---|---|
+| Cassandra | `999` | `cassandra/data`, `cassandra/logs` |
+| Elasticsearch | `1000` | `elasticsearch/data`, `elasticsearch/logs` |
+| TheHive | `1000` | `thehive/data`, `thehive/logs`, `thehive/config` |
+| Cortex | `1000` | `cortex/logs`, `cortex/neurons`, `cortex/cortex-jobs` |
+
+### Run these every time you re-clone or reset volumes
+
+```bash
+# Stop all containers first
+docker compose down
+
+# Fix ownership
+chown -R 1000:1000 thehive/data thehive/logs thehive/config
+chown -R 1000:1000 cortex/logs cortex/neurons cortex/cortex-jobs
+chown -R 999:999   cassandra/data cassandra/logs
+chown -R 1000:1000 elasticsearch/data elasticsearch/logs
+
+# Fix permissions
+chmod -R 755 cassandra/data cassandra/logs
+chmod -R 755 elasticsearch/data elasticsearch/logs
+
+# Start
+docker compose up -d
+```
+
+> ⚠️ If you skip this step, Cassandra will crash with:
+> `Error opening log file '/opt/cassandra/logs/gc.log': Permission denied`
 
 ---
 
@@ -152,13 +205,13 @@ sudo sysctl -w vm.max_map_count=262144
 echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.d/99-thehive.conf
 sudo sysctl --system
 
-# Find your UID and GID to put in .env
+# Find your UID and GID
 id -u
 id -g
 
 # Generate secrets
-openssl rand -base64 48   # use output as THEHIVE_SECRET
-openssl rand -base64 48   # use output as CORTEX_SECRET
+openssl rand -base64 48   # use as THEHIVE_SECRET
+openssl rand -base64 48   # use as CORTEX_SECRET
 ```
 
 ---
@@ -203,7 +256,10 @@ This creates `nginx/certs/thehive.crt`, `thehive.key`, and `thehive-ca.crt`.
 | Wrong UID/GID in `.env` | Permission denied on volume mounts | Run `id -u` and `id -g` and update `.env` |
 | Missing `vm.max_map_count` | Elasticsearch exits with bootstrap error | Run the sysctl commands above |
 | Secret placeholder not replaced | App fails to start, Play config error | Check `secret.conf` in both thehive and cortex |
-| nginx cert files missing | Nginx exits immediately | Run `generate-self-signed-certs.sh` or disable nginx temporarily |
+| nginx cert files missing | Nginx exits immediately | Run `generate-self-signed-certs.sh` or skip nginx for initial test |
+| Version variables missing from `.env` | `docker compose pull` fails with blank image reference | Run `cat versions.env >> .env` |
+| Cassandra `Permission denied` on gc.log | JVM exits, container restarts in loop | `chown -R 999:999 cassandra/data cassandra/logs && chmod -R 755 cassandra/` |
+| Elasticsearch `Permission denied` | ES exits at bootstrap | `chown -R 1000:1000 elasticsearch/data elasticsearch/logs` |
 
 ---
 
