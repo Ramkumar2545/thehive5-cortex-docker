@@ -40,9 +40,13 @@ chown -R 1000:1000 elasticsearch/data elasticsearch/logs
 chmod -R 755 cassandra/data cassandra/logs
 chmod -R 755 elasticsearch/data elasticsearch/logs
 
+Generate self-signed certs 
+./scripts/generate-self-signed-certs.sh
+
 # 6. Start
 docker compose pull
 docker compose up -d
+
 
 # 7. Check
 docker compose ps
