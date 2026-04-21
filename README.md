@@ -27,7 +27,7 @@ echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.d/99-thehive.conf
 chmod +x scripts/*.sh
 ./scripts/init.sh
 
-# 4. Edit the 5 files listed in the checklist printed above
+# 4. Edit the 5 files listed in the checklist configuration below scroll down with to Near Full Example 
 
 # 5. Fix directory ownership before first start
 chmod -R 777 cortex/ thehive/ elasticsearch/ cassandra/ nginx/
