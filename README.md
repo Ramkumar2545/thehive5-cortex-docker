@@ -225,8 +225,8 @@ echo 'vm.max_map_count=262144' | sudo tee /etc/sysctl.d/99-thehive.conf
 sudo sysctl --system
 
 # Find your UID and GID
-id -u
-id -g
+id -u thehive
+id -g thehive
 
 # Generate secrets
 openssl rand -base64 48   # use as THEHIVE_SECRET
