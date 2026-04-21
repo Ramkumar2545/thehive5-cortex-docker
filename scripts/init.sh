@@ -36,5 +36,24 @@ if [[ ! -f cortex/config/index.conf ]]; then
   echo "[+] Created cortex/config/index.conf"
 fi
 
-echo "[!] Update placeholder secrets before starting containers."
-echo "[!] Also place TLS files in nginx/certs if you want HTTPS through nginx."
+echo
+echo "========== NEXT ACTION REQUIRED =========="
+echo "Edit these files before docker compose up:"
+echo "  1. .env"
+echo "  2. thehive/config/index.conf"
+echo "  3. cortex/config/index.conf"
+echo "  4. thehive/config/secret.conf"
+echo "  5. cortex/config/secret.conf"
+echo
+echo "Make sure the Elasticsearch password is identical in:"
+echo "  - .env"
+echo "  - thehive/config/index.conf"
+echo "  - cortex/config/index.conf"
+echo
+echo "Make sure secret placeholders are replaced in:"
+echo "  - thehive/config/secret.conf"
+echo "  - cortex/config/secret.conf"
+echo
+echo "Optional: generate self-signed certificates with:"
+echo "  ./scripts/generate-self-signed-certs.sh"
+echo "=========================================="
