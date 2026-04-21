@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+echo "[*] Creating required directories..."
 mkdir -p \
   cassandra/data cassandra/logs \
   elasticsearch/data elasticsearch/logs \
@@ -11,49 +12,60 @@ mkdir -p \
   cortex/config cortex/logs cortex/neurons cortex/cortex-jobs \
   nginx/templates nginx/certs
 
+# ─── .env ────────────────────────────────────────────────────────────────────
 if [[ ! -f .env ]]; then
   cp .env.example .env
-  echo "[+] Created .env from .env.example"
+  echo "[+] Copied .env.example → .env"
 fi
 
-if [[ ! -f thehive/config/secret.conf ]]; then
-  cp thehive/config/secret.conf.template thehive/config/secret.conf
-  echo "[+] Created thehive/config/secret.conf"
-fi
+# ─── TheHive configs ─────────────────────────────────────────────────────────
+echo "[*] Copying thehive templates..."
+cp thehive/config/index.conf.template  thehive/config/index.conf
+echo "[+] Copied index.conf.template  → thehive/config/index.conf"
 
-if [[ ! -f cortex/config/secret.conf ]]; then
-  cp cortex/config/secret.conf.template cortex/config/secret.conf
-  echo "[+] Created cortex/config/secret.conf"
-fi
+cp thehive/config/secret.conf.template thehive/config/secret.conf
+echo "[+] Copied secret.conf.template → thehive/config/secret.conf"
 
-if [[ ! -f thehive/config/index.conf ]]; then
-  cp thehive/config/index.conf.template thehive/config/index.conf
-  echo "[+] Created thehive/config/index.conf"
-fi
+# ─── Cortex configs ──────────────────────────────────────────────────────────
+echo "[*] Copying cortex templates..."
+cp cortex/config/index.conf.template   cortex/config/index.conf
+echo "[+] Copied index.conf.template  → cortex/config/index.conf"
 
-if [[ ! -f cortex/config/index.conf ]]; then
-  cp cortex/config/index.conf.template cortex/config/index.conf
-  echo "[+] Created cortex/config/index.conf"
-fi
+cp cortex/config/secret.conf.template  cortex/config/secret.conf
+echo "[+] Copied secret.conf.template → cortex/config/secret.conf"
 
+# ─── Print next-steps checklist ──────────────────────────────────────────────
 echo
-echo "========== NEXT ACTION REQUIRED =========="
-echo "Edit these files before docker compose up:"
-echo "  1. .env"
-echo "  2. thehive/config/index.conf"
-echo "  3. cortex/config/index.conf"
-echo "  4. thehive/config/secret.conf"
-echo "  5. cortex/config/secret.conf"
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║            FILES COPIED — NOW EDIT THESE FILES              ║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║                                                              ║"
+echo "║  1. .env                                                     ║"
+echo "║     → Set UID, GID, ELASTICSEARCH_PASSWORD, secrets          ║"
+echo "║                                                              ║"
+echo "║  2. thehive/config/index.conf                                ║"
+echo "║     → Replace ###CHANGEME_ELASTICSEARCH_PASSWORD###          ║"
+echo "║       with the SAME password as in .env                      ║"
+echo "║                                                              ║"
+echo "║  3. cortex/config/index.conf                                 ║"
+echo "║     → Replace ###CHANGEME_ELASTICSEARCH_PASSWORD###          ║"
+echo "║       with the SAME password as in .env                      ║"
+echo "║                                                              ║"
+echo "║  4. thehive/config/secret.conf                               ║"
+echo "║     → Replace ###CHANGEME_THEHIVE_SECRET###                  ║"
+echo "║       with output of: openssl rand -base64 48                ║"
+echo "║                                                              ║"
+echo "║  5. cortex/config/secret.conf                                ║"
+echo "║     → Replace ###CHANGEME_CORTEX_SECRET###                   ║"
+echo "║       with output of: openssl rand -base64 48                ║"
+echo "║                                                              ║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  CRITICAL: Elasticsearch password must be IDENTICAL in:      ║"
+echo "║    .env / thehive/config/index.conf / cortex/config/index.conf║"
+echo "╠══════════════════════════════════════════════════════════════╣"
+echo "║  Optional: generate self-signed TLS certs:                   ║"
+echo "║    ./scripts/generate-self-signed-certs.sh                   ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
 echo
-echo "Make sure the Elasticsearch password is identical in:"
-echo "  - .env"
-echo "  - thehive/config/index.conf"
-echo "  - cortex/config/index.conf"
-echo
-echo "Make sure secret placeholders are replaced in:"
-echo "  - thehive/config/secret.conf"
-echo "  - cortex/config/secret.conf"
-echo
-echo "Optional: generate self-signed certificates with:"
-echo "  ./scripts/generate-self-signed-certs.sh"
-echo "=========================================="
+echo "When done editing, start with:"
+echo "  docker compose pull && docker compose up -d"

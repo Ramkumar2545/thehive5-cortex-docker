@@ -1,3 +1,26 @@
+# =============================================================================
+# TheHive — Elasticsearch Index Configuration TEMPLATE
+# =============================================================================
+# STEP: Copy this file to index.conf
+#   cp thehive/config/index.conf.template thehive/config/index.conf
+#
+# THEN: Replace ###CHANGEME_ELASTICSEARCH_PASSWORD### below
+#       with the SAME password you set in .env → ELASTICSEARCH_PASSWORD
+#
+# EXAMPLE:
+#   If your .env has:  ELASTICSEARCH_PASSWORD=admin!123
+#   Then set below:    password = "admin!123"
+#
+# ┌─────────────────────────────────────────────────────────────────────────┐
+# │  FILE          │  PLACEHOLDER                          │  VALUE         │
+# ├─────────────────────────────────────────────────────────────────────────┤
+# │  .env          │  ELASTICSEARCH_PASSWORD=              │  your-password │
+# │  index.conf    │  ###CHANGEME_ELASTICSEARCH_PASSWORD###│  your-password │
+# │  (cortex too)  │  ###CHANGEME_ELASTICSEARCH_PASSWORD###│  your-password │
+# └─────────────────────────────────────────────────────────────────────────┘
+# All three must use the exact same password string.
+# =============================================================================
+
 db.janusgraph.index.search {
   backend = elasticsearch
   hostname = ["elasticsearch"]
@@ -6,6 +29,7 @@ db.janusgraph.index.search {
     type = "basic"
     basic {
       username = "elastic"
+      # ↓ REPLACE THIS with your Elasticsearch password (same as in .env)
       password = "###CHANGEME_ELASTICSEARCH_PASSWORD###"
     }
   }
