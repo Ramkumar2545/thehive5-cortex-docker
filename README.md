@@ -31,20 +31,33 @@ chmod +x scripts/*.sh
 
 # 5. Fix directory ownership before first start
 docker compose down
+chmod -R 777 cortex/ thehive/ elasticsearch/ cassandra/ nginx/
 
+# Cortex
+chown -R 1000:1000 cortex/cortex-jobs cortex/logs cortex/neurons cortex/config
+chmod -R 777 cortex/cortex-jobs
+chmod -R 755 cortex/logs cortex/neurons cortex/config
+
+# TheHive
 chown -R 1000:1000 thehive/data thehive/logs thehive/config
-chown -R 1000:1000 cortex/logs cortex/neurons cortex/cortex-jobs
-chown -R 999:999   cassandra/data cassandra/logs
-chown -R 1000:1000 elasticsearch/data elasticsearch/logs
+chmod -R 755 thehive/data thehive/logs thehive/config
 
+# Cassandra
+chown -R 999:999 cassandra/data cassandra/logs
 chmod -R 755 cassandra/data cassandra/logs
+
+# Elasticsearch
+chown -R 1000:1000 elasticsearch/data elasticsearch/logs
 chmod -R 755 elasticsearch/data elasticsearch/logs
 
-Generate self-signed certs 
-./scripts/generate-self-signed-certs.sh
+# Nginx
+chmod -R 755 nginx/certs nginx/templates
+
 
 # 6. Start
 docker compose pull
+Generate self-signed certs 
+./scripts/generate-self-signed-certs.sh
 docker compose up -d
 
 
