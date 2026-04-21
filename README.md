@@ -56,8 +56,6 @@ chmod -R 755 nginx/certs nginx/templates
 # 6. Start
 docker compose pull
 docker compose up -d
-
-INCASE SERVICE FAILES:
 Generate self-signed certs 
 ./scripts/generate-self-signed-certs.sh
 
