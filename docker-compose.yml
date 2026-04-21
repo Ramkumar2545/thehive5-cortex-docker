@@ -4,7 +4,7 @@ services:
     container_name: cassandra
     hostname: cassandra
     restart: unless-stopped
-    user: "${UID}:${GID}"
+    # No user: override — let the cassandra image manage its own UID (999)
     environment:
       CASSANDRA_CLUSTER_NAME: TheHive
       CASSANDRA_AUTHENTICATOR: PasswordAuthenticator
@@ -33,7 +33,7 @@ services:
     container_name: elasticsearch
     hostname: elasticsearch
     restart: unless-stopped
-    user: "${UID}:0"
+    # No user: override — let the elasticsearch image manage its own UID (1000)
     environment:
       http.host: 0.0.0.0
       discovery.type: single-node
