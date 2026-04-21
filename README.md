@@ -173,30 +173,6 @@ Each container runs as a specific internal UID. Mounted host directories **must*
 | TheHive | `1000` | `thehive/data`, `thehive/logs`, `thehive/config` |
 | Cortex | `1000` | `cortex/logs`, `cortex/neurons`, `cortex/cortex-jobs` |
 
-### Run these every time you re-clone or reset volumes
-
-```bash
-# Stop all containers first
-docker compose down
-
-# Fix ownership
-chown -R 1000:1000 thehive/data thehive/logs thehive/config
-chown -R 1000:1000 cortex/logs cortex/neurons cortex/cortex-jobs
-chown -R 999:999   cassandra/data cassandra/logs
-chown -R 1000:1000 elasticsearch/data elasticsearch/logs
-
-# Fix permissions
-chmod -R 755 cassandra/data cassandra/logs
-chmod -R 755 elasticsearch/data elasticsearch/logs
-
-# Start
-docker compose up -d
-```
-
-> ⚠️ If you skip this step, Cassandra will crash with:
-> `Error opening log file '/opt/cassandra/logs/gc.log': Permission denied`
-
----
 
 ## What each config file does
 
