@@ -1,0 +1,21 @@
+# Git ignore
+.env
+*.log
+*.zip
+
+# Runtime data
+cassandra/data/
+cassandra/logs/
+elasticsearch/data/
+elasticsearch/logs/
+thehive/data/
+thehive/logs/
+cortex/logs/
+cortex/cortex-jobs/
+nginx/certs/
+
+# Generated configs
+thehive/config/index.conf
+cortex/config/index.conf
+thehive/config/secret.conf
+cortex/config/secret.conf
