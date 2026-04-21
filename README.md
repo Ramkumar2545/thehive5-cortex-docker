@@ -30,7 +30,6 @@ chmod +x scripts/*.sh
 # 4. Edit the 5 files listed in the checklist printed above
 
 # 5. Fix directory ownership before first start
-docker compose down
 chmod -R 777 cortex/ thehive/ elasticsearch/ cassandra/ nginx/
 
 # Cortex
