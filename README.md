@@ -103,7 +103,7 @@ It then prints a checklist of every placeholder you must replace.
 
 ---
 
-### Full example with password `admin!123`
+### Full example
 
 #### `.env`
 ```env
