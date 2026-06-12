@@ -18,6 +18,21 @@ if [[ ! -f .env ]]; then
   echo "[+] Copied .env.example → .env"
 fi
 
+# Auto-set CORTEX_DOCKER_JOB_DIRECTORY to the real absolute host path.
+# This MUST be an absolute path — Docker passes it directly to spawned
+# analyzer containers as a bind-mount source. A wrong or relative path
+# causes workers to start with empty stdin → JSONDecodeError.
+JOBS_DIR="${ROOT_DIR}/cortex/cortex-jobs"
+sed -i "s|CORTEX_DOCKER_JOB_DIRECTORY=.*|CORTEX_DOCKER_JOB_DIRECTORY=${JOBS_DIR}|" .env
+echo "[+] Auto-set CORTEX_DOCKER_JOB_DIRECTORY=${JOBS_DIR}"
+
+# Auto-set UID and GID from the current user so volume mounts work correctly.
+CURRENT_UID="$(id -u)"
+CURRENT_GID="$(id -g)"
+sed -i "s|^UID=.*|UID=${CURRENT_UID}|" .env
+sed -i "s|^GID=.*|GID=${CURRENT_GID}|" .env
+echo "[+] Auto-set UID=${CURRENT_UID} GID=${CURRENT_GID}"
+
 # ─── TheHive configs ─────────────────────────────────────────────────────────
 echo "[*] Copying thehive templates..."
 cp thehive/config/index.conf.template  thehive/config/index.conf
@@ -40,22 +55,28 @@ echo "╔═══════════════════════�
 echo "║            FILES COPIED — NOW EDIT THESE FILES              ║"
 echo "╠══════════════════════════════════════════════════════════════╣"
 echo "║                                                              ║"
-echo "║  1. .env                                                     ║"
-echo "║     → Set UID, GID, ELASTICSEARCH_PASSWORD, secrets          ║"
+echo "║  AUTO-CONFIGURED (no action needed):                         ║"
+echo "║    ✔ CORTEX_DOCKER_JOB_DIRECTORY  (set to this machine path) ║"
+echo "║    ✔ UID / GID                    (set from current user)    ║"
 echo "║                                                              ║"
-echo "║  2. thehive/config/index.conf                                ║"
+echo "║  STILL REQUIRED — edit .env:                                 ║"
+echo "║    → ELASTICSEARCH_PASSWORD  (replace placeholder)           ║"
+echo "║    → THEHIVE_SECRET          (openssl rand -base64 48)       ║"
+echo "║    → CORTEX_SECRET           (openssl rand -base64 48)       ║"
+echo "║                                                              ║"
+echo "║  1. thehive/config/index.conf                                ║"
 echo "║     → Replace ###CHANGEME_ELASTICSEARCH_PASSWORD###          ║"
 echo "║       with the SAME password as in .env                      ║"
 echo "║                                                              ║"
-echo "║  3. cortex/config/index.conf                                 ║"
+echo "║  2. cortex/config/index.conf                                 ║"
 echo "║     → Replace ###CHANGEME_ELASTICSEARCH_PASSWORD###          ║"
 echo "║       with the SAME password as in .env                      ║"
 echo "║                                                              ║"
-echo "║  4. thehive/config/secret.conf                               ║"
+echo "║  3. thehive/config/secret.conf                               ║"
 echo "║     → Replace ###CHANGEME_THEHIVE_SECRET###                  ║"
 echo "║       with output of: openssl rand -base64 48                ║"
 echo "║                                                              ║"
-echo "║  5. cortex/config/secret.conf                                ║"
+echo "║  4. cortex/config/secret.conf                                ║"
 echo "║     → Replace ###CHANGEME_CORTEX_SECRET###                   ║"
 echo "║       with output of: openssl rand -base64 48                ║"
 echo "║                                                              ║"
