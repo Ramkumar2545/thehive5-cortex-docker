@@ -180,8 +180,21 @@ If `journalctl -k` shows OOM kills lining up with the mount errors, the
 root cause is memory pressure, not a code/config bug — see the memory
 guidance below. If instead you see large `Exited` container counts with no
 OOM kills, it's stale-container buildup and `docker container prune` on a
-schedule is the fix (see `scripts/prune-stale-analyzer-containers.sh` and
-`systemd/docker-prune.{service,timer}` in this repo).
+schedule is the fix — either `scripts/setup-cleanup-cron.sh` (cron, every
+15 min) or `systemd/docker-prune.{service,timer}` +
+`scripts/prune-stale-analyzer-containers.sh` (systemd timer, every 30 min).
+Pick one; running both is harmless but redundant.
+
+**Audited and ruled out:** a `job.directory` / `job.dockerDirectory` path
+mismatch between the `cortex` container and its spawned sibling analyzer
+containers. Verified against the Cortex docker image's entrypoint script and
+`DockerJobRunnerSrv.scala` — this repo's `job_directory=/tmp/cortex-jobs` /
+`docker_job_directory=${CORTEX_DOCKER_JOB_DIRECTORY}` setup in
+`docker-compose.yml` is the correct, working configuration (see the comment
+block in `cortex/config/application.conf`). A real path mismatch produces
+the `JSONDecodeError` documented above — empty stdin, not a busy mount — so
+if you're hitting that error instead, treat it as Root Cause 1 up top, not
+this section.
 
 ### Fix — recover a currently stuck host
 
@@ -216,6 +229,61 @@ Docker host, not inside a container.
    → cap concurrent jobs, or stagger the 4 analyzers instead of firing them
    in parallel) before concluding you need a second host — a config change
    is cheaper to try and reverse than a topology change.
+
+---
+
+## OTXQuery fails intermittently with "API Error! Please verify data type is correct"
+
+### Symptom
+
+The `OTXQuery_2_0` analyzer job fails with the generic message:
+
+```
+API Error! Please verify data type is correct.
+```
+
+...for what looks like unrelated inputs, sometimes succeeding on a retry
+with no config change.
+
+### Root cause
+
+This is a known, unfixed **upstream bug in the analyzer itself**
+(`TheHive-Project/Cortex-Analyzers`), not something fixable in this repo.
+The analyzer wraps almost every failure — bad API key, network/proxy
+issue, an actual bad data type, an AlienVault OTX API change — in this
+same generic string, so the message text tells you nothing about the real
+cause. See upstream issues
+[#22](https://github.com/TheHive-Project/Cortex-Analyzers/issues/22)
+(error handling is too generic by design),
+[#363](https://github.com/TheHive-Project/Cortex-Analyzers/issues/363)
+(same message on IP address submission), and
+[#850](https://github.com/TheHive-Project/Cortex-Analyzers/issues/850)
+(analyzer breaking again after a Python 3 migration).
+
+**Don't trust the message text.** Check instead:
+
+```bash
+# 1. Connectivity from the Cortex host to the OTX API
+docker exec cortex curl -I https://otx.alienvault.com
+
+# 2. Is the API key actually populated (not blank)?
+#    Cortex UI > Organization > Analyzers > OTXQuery_2_0 > Options
+#    There is no supported way to read analyzer config via curl without
+#    first creating a Cortex API key in the UI (Organization > API keys);
+#    with one, GET {CORTEX_URL}/api/organization/analyzer/OTXQuery_2_0
+#    with `Authorization: Bearer <key>` returns the configuration, but the
+#    UI check above is simpler and doesn't require issuing a key just to
+#    look.
+
+# 3. Raw logs around the failing job
+docker compose logs cortex | grep -i otx | tail -30
+```
+
+If connectivity is fine and the key is populated, this is very likely the
+upstream generic-error-message bug — re-running the same job is a
+legitimate diagnostic step here (unlike most flaky-looking failures),
+since a transient network blip and a real config problem produce the
+identical message.
 
 ---
 
