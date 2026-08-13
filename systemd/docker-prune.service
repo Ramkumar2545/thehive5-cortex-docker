@@ -1,0 +1,9 @@
+[Unit]
+Description=Prune stale exited Cortex analyzer containers
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+# Adjust the path below to your actual clone location.
+ExecStart=/bin/bash -lc '/opt/thehive5-cortex-docker/scripts/prune-stale-analyzer-containers.sh >> /var/log/docker-prune.log 2>&1'
