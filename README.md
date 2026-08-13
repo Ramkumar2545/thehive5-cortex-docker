@@ -59,6 +59,9 @@ docker compose up -d
 Generate self-signed certs 
 ./scripts/generate-self-signed-certs.sh
 
+# 6b. Install the stale-container cleanup cron (prevents container/mount
+#     teardown errors under concurrent analyzer job load)
+./scripts/setup-cleanup-cron.sh
 
 # 7. Check
 docker compose ps
@@ -219,6 +222,11 @@ openssl rand -base64 48   # use as CORTEX_SECRET
 | Nginx | — | 512 MB |
 | OS + Docker + analyzers | remaining ~2 GB | — |
 
+> **Note:** Elasticsearch typically runs at 85-90% of its 3GB limit even at
+> idle — it's the tightest resource in this stack. If adding analyzers
+> beyond the default set, monitor `docker stats` closely; Cortex has the
+> most memory headroom to absorb additional concurrent analyzer load.
+
 ---
 
 ## Direct access URLs
@@ -252,6 +260,7 @@ This creates `nginx/certs/thehive.crt`, `thehive.key`, and `thehive-ca.crt`.
 | Version variables missing from `.env` | `docker compose pull` fails with blank image reference | Run `cat versions.env >> .env` |
 | Cassandra `Permission denied` on gc.log | JVM exits, container restarts in loop | `chown -R 999:999 cassandra/data cassandra/logs && chmod -R 755 cassandra/` |
 | Elasticsearch `Permission denied` | ES exits at bootstrap | `chown -R 1000:1000 elasticsearch/data elasticsearch/logs` |
+| NSRL analyzer enabled without a local dataset | Every job fails: `errorMessage: "No valid configuration found"` | NSRL requires `nsrl_folder`, `grep_path`, or `conn` to point at a locally downloaded NIST NSRL dataset (large, out of scope for this repo's setup). Leave NSRL disabled and use **CIRCLHashlookup** instead — it covers the same "known-good hash" use case via a free remote API, no local dataset needed. |
 
 ---
 
